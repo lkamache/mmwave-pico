@@ -1,0 +1,140 @@
+esphome:
+  name: mmwave-pico
+  friendly_name: mmWave Pico
+  on_boot:
+    - switch.turn_off: bluetooth_control
+  name_add_mac_suffix: True
+  comment: "Micro mmWave motion detector developed by Leonardo Kamache"
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+
+logger:
+
+api:
+
+ota:
+  - platform: esphome
+
+light:
+  - platform: status_led
+    id: leddestatus
+    pin:
+      number: 8
+      inverted: true
+
+wifi:
+  ap:
+    ssid: "mmWave Pico Fallback Hotspot"
+
+improv_serial:
+
+esp32_improv:
+  authorizer: none
+
+esp32_ble_tracker:
+  scan_parameters:
+    interval: 1100ms
+    window: 1100ms
+    active: true
+
+bluetooth_proxy:
+  active: true
+
+captive_portal:
+
+web_server:
+  version: 3
+
+uart:
+  tx_pin: 05
+  rx_pin: 21
+  baud_rate: 256000
+  parity: NONE
+  stop_bits: 1
+
+ld2410:
+
+sensor:
+  - platform: ld2410
+    moving_distance:
+      name: "Moving Distance"
+    still_distance:
+      name: "Still Distance"
+    moving_energy:
+      name: "Move Energy"
+    still_energy:
+      name: "Still Energy"
+    detection_distance:
+      name: "Detection Distance"
+      
+  - platform: wifi_signal
+    name: "WiFi Signal dB"
+    id: wifi_signal_db
+    update_interval: 60s
+    entity_category: "diagnostic"
+
+  - platform: copy
+    source_id: wifi_signal_db
+    name: "WiFi Signal Percent"
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: "%"
+    entity_category: "diagnostic"
+
+  - platform: uptime
+    name: "Uptime Sensor"
+
+binary_sensor:
+  - platform: ld2410
+    has_target:
+      name: "Presence"
+      on_press:
+        - light.turn_on:
+            id: leddestatus
+      on_release:
+        - light.turn_off:
+            id: leddestatus
+    has_moving_target:
+      name: "Moving Target"
+    has_still_target:
+      name: "Still Target"
+      
+  - platform: status
+    name: "Status"
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+  - platform: ld2410
+    version:
+      name: "Firmware Version"
+    mac_address:
+      name: "MAC Address"
+
+button:
+  - platform: ld2410
+    factory_reset:
+      name: "Factory Reset"
+    restart:
+      name: "Restart"
+
+switch:
+  - platform: ld2410
+    bluetooth:
+      id: bluetooth_control
+      name: "Control Bluetooth"
+      internal: True
+      restore_mode: ALWAYS_OFF
+
+number:
+  - platform: ld2410
+    timeout:
+      name: "Timeout"
+    max_move_distance_gate:
+      name: "Max Move Distance Gate"
+    max_still_distance_gate:
+      name: "Max Still Distance Gate"
